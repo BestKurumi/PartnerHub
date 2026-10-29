@@ -1,0 +1,50 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Build products, dependencies and runtime data
+/.local/
+/bin/
+/dist/
+/hub
+/mock
+/migrate
+/healthprobe
+*.exe
+*.test
+*.out
+*.log
+*.tar
+*.tar.gz
+*.zip
+coverage/
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+
+# Editor/OS files and personal agent workflow state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+/.agents/
+/.codex/
+/.comet/
+/.superpowers/
+/AGENTS.md
+
+# Local design archives, execution evidence and screenshots remain on disk
+/docs/*
+!/docs/observability.md
+!/docs/architecture.md
+!/docs/development.md
+
+# One-off runners tied to the author's private startup environment
+/scripts/*
+!/scripts/demo.py
+!/scripts/demo_test.py
+!/scripts/check-console-local.sh

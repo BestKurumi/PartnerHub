@@ -1,0 +1,94 @@
+name: partner-hub-test
+services:
+  mysql:
+    image: mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69
+    environment:
+      MYSQL_ROOT_PASSWORD: test-root-local-only
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - mysql-test:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/00-identities.sql:ro
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--default-time-zone=+00:00", "--log-bin-trust-function-creators=ON"]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 2s
+      timeout: 2s
+      retries: 60
+  identities:
+    image: mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69
+    profiles: ["tools"]
+    environment:
+      MYSQL_PWD: test-root-local-only
+    volumes:
+      - ./mysql-init.sql:/identities.sql:ro
+    entrypoint: ["sh", "-c", "mysql -hmysql -uroot < /identities.sql"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+  redis:
+    image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - redis-test:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+  kafka-volume:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    user: "0:0"
+    volumes:
+      - kafka-test:/var/lib/kafka/data
+    entrypoint: ["chown", "1000:1000", "/var/lib/kafka/data"]
+  kafka:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    depends_on:
+      kafka-volume:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:19092:19092"
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://127.0.0.1:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes:
+      - kafka-test:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+  topics:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    profiles: ["tools"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic customer.binding.events --partitions 3 --replication-factor 1 --config retention.ms=604800000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic platform2.trade.notifications --partitions 3 --replication-factor 1 --config retention.ms=604800000
+volumes:
+  mysql-test:
+  redis-test:
+  kafka-test:

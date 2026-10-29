@@ -1,0 +1,904 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [
+    "partner-hub",
+    "mvp"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "中台运维 · 运行与依赖",
+  "uid": "hub-overview",
+  "version": 3,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "中台实例采集健康",
+      "description": "1=抓取成功。分别抓取 hub-1/hub-2，避免代理掩盖单实例故障。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=\"hub\"}",
+          "legendFormat": "{{job}} {{instance}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "中台后台采样健康与陈旧时间",
+      "description": "健康=0或最后成功时间缺失/过旧时，不应把保留的旧值当实时状态。失败不伪造零积压。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hub_observation_up",
+          "legendFormat": "hub {{instance}} {{kind}} healthy"
+        },
+        {
+          "refId": "B",
+          "expr": "time() - hub_observation_last_success_timestamp_seconds",
+          "legendFormat": "hub {{instance}} {{kind}} age(s)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "接入响应速率与在途",
+      "description": "含拒绝及不确定响应；接入响应与平台首发、归档分别计量。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status) (rate(hub_ingress_requests_total[1m]))",
+          "legendFormat": "HTTP {{status}} /s"
+        },
+        {
+          "refId": "B",
+          "expr": "hub_ingress_in_flight",
+          "legendFormat": "{{instance}} in flight"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "平台首发结果：含 UNKNOWN 与未发送",
+      "description": "B SUCCESS仅表示Broker确认。send_started=false为固定目标首次未发出，不把它算外部接收。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (platform,outcome,send_started) (rate(hub_first_delivery_total[1m]))",
+          "legendFormat": "{{platform}} {{outcome}} started={{send_started}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "首次交付确认时延 P99：按平台及结果",
+      "description": "接入→各平台首次尝试结束，包括路由与额度等待。失败/UNKNOWN单列，未结束输入不在直方图；达标结论必须结合完整cohort负载报告。B终点是Broker确认。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, sum by (platform,outcome,le) (rate(hub_first_delivery_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{platform}} {{outcome}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "首轮 HTTP 响应耗时 P99",
+      "description": "包含正常暂存或异常持久移交；不同于平台确认与MySQL可见耗时。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, sum by (status,le) (rate(hub_ingress_duration_seconds_bucket[5m])))",
+          "legendFormat": "HTTP {{status}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "待归档条数与字节",
+      "description": "共享Redis全局观测，跨hub取max不求和。字节为序列化快照会计值，非Redis总内存。结合采样健康判断。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(hub_archive_pending_count)",
+          "legendFormat": "pending rows"
+        },
+        {
+          "refId": "B",
+          "expr": "max(hub_archive_pending_bytes)",
+          "legendFormat": "pending bytes"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "待归档最老年龄",
+      "description": "以原接入时间计龄，领取/续租不重置。跨hub取max；采样失败保留旧值并标不健康。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(hub_archive_pending_oldest_age_seconds)",
+          "legendFormat": "oldest"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "归档 flush 与可见时延",
+      "description": "flush空批次不代表新增记录。MySQL可见延迟独立于首发。重放内部快照不新增外发。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(hub_archive_flush_total[1m]))",
+          "legendFormat": "flush {{outcome}} /s"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(hub_archive_visible_duration_seconds_bucket[5m])))",
+          "legendFormat": "visible P99(s)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "恢复责任：平台/状态与最老年龄",
+      "description": "共享MySQL取max；待重试/在途/待人工分别显示。采样不是全局原子配额。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (platform,status) (hub_recovery_tasks)",
+          "legendFormat": "{{platform}} {{status}} rows"
+        },
+        {
+          "refId": "B",
+          "expr": "max by (platform,status) (hub_recovery_oldest_age_seconds)",
+          "legendFormat": "{{platform}} {{status}} age(s)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "恢复尝试与过期租约",
+      "description": "与首发分开；租约过期可能已发生外部副作用，UNKNOWN不能解释为未接收。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (platform,outcome) (rate(hub_recovery_attempts_total[1m]))",
+          "legendFormat": "{{platform}} {{outcome}} /s"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (kind) (rate(hub_lease_recovered_total[1m]))",
+          "legendFormat": "expired {{kind}} /s"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "绑定缓存、回源与消费积压",
+      "description": "同一绑定消费组的全组lag跨hub取max；与B外部消费组独立。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (rate(hub_binding_cache_total[1m]))",
+          "legendFormat": "cache {{outcome}} /s"
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (outcome) (rate(hub_binding_source_total[1m]))",
+          "legendFormat": "source {{outcome}} /s"
+        },
+        {
+          "refId": "C",
+          "expr": "max(hub_binding_consumer_lag)",
+          "legendFormat": "binding group lag"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "进程内存与 goroutine",
+      "description": "进程指标；不代表中间件容器/主机资源，负载报告另记录docker stats。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_resident_memory_bytes{job=\"hub\"}",
+          "legendFormat": "{{job}} {{instance}} RSS"
+        },
+        {
+          "refId": "B",
+          "expr": "go_goroutines{job=\"hub\"}",
+          "legendFormat": "{{job}} {{instance}} goroutines"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "进程 CPU",
+      "description": "每秒CPU时间，1表示约一个CPU核；不用于推断未经实测的吞吐收益。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(process_cpu_seconds_total{job=\"hub\"}[1m])",
+          "legendFormat": "{{job}} {{instance}} CPU cores"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "数据库连接池：实例与固定用途",
+      "description": "各hub独立连接预算；绑定/移交/归档/恢复/查询分别观察。累计等待由hub_db_pool_wait_total与hub_db_pool_wait_seconds_total提供。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 64
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hub_db_pool_open_connections",
+          "legendFormat": "{{instance}} {{pool}} open"
+        },
+        {
+          "refId": "B",
+          "expr": "hub_db_pool_in_use_connections",
+          "legendFormat": "{{instance}} {{pool}} in use"
+        },
+        {
+          "refId": "C",
+          "expr": "hub_db_pool_max_connections",
+          "legendFormat": "{{instance}} {{pool}} max"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Redis 内存与持久化健康",
+      "description": "Redis共享内存取max。持久化健康须结合archive采样健康和最后成功时间；不替代主机/磁盘监控。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 64
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(hub_redis_used_memory_bytes)",
+          "legendFormat": "used bytes"
+        },
+        {
+          "refId": "B",
+          "expr": "max(hub_redis_max_memory_bytes)",
+          "legendFormat": "max bytes"
+        },
+        {
+          "refId": "C",
+          "expr": "min(hub_redis_persistence_healthy)",
+          "legendFormat": "AOF/noeviction healthy(1)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "恢复最终成功时延 P99",
+      "description": "从原接入至恢复成功，包含重试等待；仍未成功/待人工的责任必须同时看积压，不能只凭成功样本评价可靠性。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 72
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.99, sum by (platform,le) (rate(hub_recovery_success_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{platform}} recovery success"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "路由结果与每消息固定目标数",
+      "description": "NO_ROUTE 为零目标的正常终态，后续绑定不补推。目标数反映每条已处理消息的固定路由快照，不等于外部实收数量。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 72
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status) (rate(hub_route_results_total[1m]))",
+          "legendFormat": "{{status}} /s"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(rate(hub_first_targets_sum[1m])) / clamp_min(sum(rate(hub_first_targets_count[1m])), 0.000001)",
+          "legendFormat": "targets per processed message"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      }
+    }
+  ]
+}

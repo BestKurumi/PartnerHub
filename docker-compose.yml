@@ -1,0 +1,297 @@
+# Each Compose project owns its own named volumes; normal startup never resets data.
+x-app: &app
+  image: ${HUB_IMAGE:-partner-hub/mvp:local}
+  build:
+    context: .
+    target: ${HUB_IMAGE_TARGET:-runtime}
+    args:
+      GOPROXY: ${GO_MODULE_PROXY:-https://proxy.golang.org,direct}
+  init: true
+  networks: [hub-net]
+  stop_grace_period: 30s
+  restart: unless-stopped
+
+x-demo-env: &demo-env
+  TZ: Asia/Shanghai
+  DEMO_TOKEN: ${DEMO_TOKEN:?set DEMO_TOKEN}
+  DEMO_ALLOW_CONTAINER_LISTEN: "true"
+  DEMO_TRUSTED_CIDRS: ${DEMO_SUBNET:-172.30.25.0/24}
+  HUB_TEST_URL: http://nginx
+  MOCK_KAFKA_BROKERS: kafka:9092
+
+x-hub-env: &hub-env
+  <<: *demo-env
+  HUB_LISTEN: :8080
+  HUB_DSN: hub:${MYSQL_PASSWORD:?set MYSQL_PASSWORD}@tcp(mysql:3306)/partner_hub?parseTime=true&timeout=1s&readTimeout=2s&writeTimeout=2s
+  HUB_REDIS_ADDR: redis:6379
+  HUB_KAFKA_BROKERS: kafka:9092
+  HUB_PLATFORM1_URL: http://mock-platform1:18081/notifications/trades
+  HUB_PROMETHEUS_URL: http://prometheus:9090
+  HUB_GRAFANA_URL: ${HUB_GRAFANA_URL:-http://127.0.0.1:${GRAFANA_HOST_PORT:-3000}/d/hub-overview}
+  HUB_OPS_TOKEN: ${HUB_OPS_TOKEN:?set HUB_OPS_TOKEN}
+  HUB_DIAGNOSTIC_PEERS: hub-1=http://hub-1:8080,hub-2=http://hub-2:8080
+  HUB_MAX_INSTANCES: 2
+  HUB_MAX_INFLIGHT: ${HUB_MAX_INFLIGHT:-64}
+  HUB_RATE_PER_SECOND: ${HUB_RATE_PER_SECOND:-200}
+  HUB_RATE_BURST: ${HUB_RATE_BURST:-40}
+  HUB_ARCHIVE_MAX_PENDING: ${HUB_ARCHIVE_MAX_PENDING:-10000}
+  HUB_ARCHIVE_MAX_BYTES: ${HUB_ARCHIVE_MAX_BYTES:-134217728}
+  HUB_PLATFORM_A_TOTAL_CONCURRENCY: ${HUB_PLATFORM_A_TOTAL_CONCURRENCY:-16}
+  HUB_PLATFORM_A_FIRST_CONCURRENCY: ${HUB_PLATFORM_A_FIRST_CONCURRENCY:-12}
+  HUB_PLATFORM_A_RECOVERY_CONCURRENCY: ${HUB_PLATFORM_A_RECOVERY_CONCURRENCY:-4}
+  HUB_PLATFORM_A_RATE_PER_SECOND: ${HUB_PLATFORM_A_RATE_PER_SECOND:-100}
+  HUB_PLATFORM_A_RATE_BURST: ${HUB_PLATFORM_A_RATE_BURST:-4}
+  HUB_PLATFORM_A_PAUSED: ${HUB_PLATFORM_A_PAUSED:-false}
+  HUB_PLATFORM_B_TOTAL_CONCURRENCY: ${HUB_PLATFORM_B_TOTAL_CONCURRENCY:-16}
+  HUB_PLATFORM_B_FIRST_CONCURRENCY: ${HUB_PLATFORM_B_FIRST_CONCURRENCY:-12}
+  HUB_PLATFORM_B_RECOVERY_CONCURRENCY: ${HUB_PLATFORM_B_RECOVERY_CONCURRENCY:-4}
+  HUB_PLATFORM_B_RATE_PER_SECOND: ${HUB_PLATFORM_B_RATE_PER_SECOND:-100}
+  HUB_PLATFORM_B_RATE_BURST: ${HUB_PLATFORM_B_RATE_BURST:-4}
+  HUB_PLATFORM_B_PAUSED: ${HUB_PLATFORM_B_PAUSED:-false}
+
+x-hub-deps: &hub-deps
+  migrate:
+    condition: service_completed_successfully
+  redis:
+    condition: service_healthy
+  kafka-init:
+    condition: service_completed_successfully
+  mock-platform1:
+    condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.4@sha256:76f0358884cb92d9a086d24e5671c38048d3fef40f2588703d73eb55392d6b69
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_HOST: "%"
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_bin", "--default-time-zone=+00:00", "--max-connections=100"]
+    volumes: [mysql-data:/var/lib/mysql]
+    ports: ["127.0.0.1:${MYSQL_HOST_PORT:-3306}:3306"]
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$${MYSQL_ROOT_PASSWORD}" mysqladmin ping -h 127.0.0.1 -uroot --silent']
+      interval: 2s
+      timeout: 2s
+      retries: 60
+      start_period: 20s
+    networks: [hub-net]
+
+  redis:
+    image: redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    volumes: [redis-data:/data]
+    ports: ["127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    networks: [hub-net]
+
+  kafka-volume:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    user: "0:0"
+    volumes: [kafka-data:/var/lib/kafka/data]
+    entrypoint: ["chown", "1000:1000", "/var/lib/kafka/data"]
+    restart: "no"
+    networks: [hub-net]
+
+  kafka:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    depends_on:
+      kafka-volume:
+        condition: service_completed_successfully
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://127.0.0.1:${KAFKA_HOST_PORT:-29092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xmx512m -Xms256m
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    volumes: [kafka-data:/var/lib/kafka/data]
+    ports: ["127.0.0.1:${KAFKA_HOST_PORT:-29092}:19092"]
+    healthcheck:
+      test: ["CMD", "/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 20s
+    networks: [hub-net]
+
+  kafka-init:
+    image: apache/kafka:3.7.1@sha256:ed74d7d115968d5e8b00ba6822ac6a384cbaaf54ca38991828647000d7089b68
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for topic in customer.binding.events platform2.trade.notifications; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic "$$topic" --partitions 3 --replication-factor 1 --config retention.ms=604800000
+        done
+    restart: "no"
+    networks: [hub-net]
+
+  migrate:
+    <<: *app
+    entrypoint: ["/app/migrate"]
+    command: ["-dir", "/app/deploy/mysql"]
+    environment:
+      MYSQL_ADDR: mysql:3306
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      PLATFORM1_DB_PASSWORD: ${PLATFORM1_DB_PASSWORD:?set PLATFORM1_DB_PASSWORD}
+      PLATFORM2_DB_PASSWORD: ${PLATFORM2_DB_PASSWORD:?set PLATFORM2_DB_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+
+  mock-platform1:
+    <<: *app
+    entrypoint: ["/app/mock"]
+    command: ["platform1", "-listen", ":18081"]
+    environment:
+      <<: *demo-env
+      PLATFORM1_DSN: mock_p1:${PLATFORM1_DB_PASSWORD:?set PLATFORM1_DB_PASSWORD}@tcp(mysql:3306)/mock_platform1?parseTime=true&timeout=1s&readTimeout=2s&writeTimeout=2s
+    ports: ["127.0.0.1:${PLATFORM1_HTTP_PORT:-18081}:18081"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/app/healthprobe", "http://127.0.0.1:18081/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  mock-platform2:
+    <<: *app
+    entrypoint: ["/app/mock"]
+    command: ["platform2", "-listen", ":18082"]
+    environment:
+      <<: *demo-env
+      PLATFORM2_DSN: mock_p2:${PLATFORM2_DB_PASSWORD:?set PLATFORM2_DB_PASSWORD}@tcp(mysql:3306)/mock_platform2?parseTime=true&timeout=1s&readTimeout=2s&writeTimeout=2s
+    ports: ["127.0.0.1:${PLATFORM2_HTTP_PORT:-18082}:18082"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/app/healthprobe", "http://127.0.0.1:18082/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  mock-upstream:
+    <<: *app
+    entrypoint: ["/app/mock"]
+    command: ["upstream", "-listen", ":18083"]
+    environment: *demo-env
+    ports: ["127.0.0.1:${UPSTREAM_HTTP_PORT:-18083}:18083"]
+    depends_on:
+      nginx:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/app/healthprobe", "http://127.0.0.1:18083/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+  hub-1:
+    <<: *app
+    environment:
+      <<: *hub-env
+      HUB_INSTANCE_ID: hub-1
+    depends_on: *hub-deps
+    healthcheck:
+      test: ["CMD", "/app/healthprobe", "http://127.0.0.1:8080/readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  hub-2:
+    <<: *app
+    environment:
+      <<: *hub-env
+      HUB_INSTANCE_ID: hub-2
+    depends_on: *hub-deps
+    healthcheck:
+      test: ["CMD", "/app/healthprobe", "http://127.0.0.1:8080/readyz"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes: [./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro]
+    ports: ["127.0.0.1:${HUB_HTTP_PORT:-8080}:80"]
+    depends_on:
+      hub-1:
+        condition: service_healthy
+      hub-2:
+        condition: service_healthy
+      mock-platform2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/nginx-health"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+    restart: unless-stopped
+    networks: [hub-net]
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports: ["127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"]
+    restart: unless-stopped
+    networks: [hub-net]
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?set GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_LOG_LEVEL: warn
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ["127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"]
+    depends_on: [prometheus]
+    restart: unless-stopped
+    networks: [hub-net]
+
+networks:
+  hub-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${DEMO_SUBNET:-172.30.25.0/24}
+
+volumes:
+  mysql-data:
+  redis-data:
+  kafka-data:
+  prometheus-data:
+  grafana-data:

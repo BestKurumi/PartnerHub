@@ -1,0 +1,22 @@
+{
+  "msgId": "8a236f08-1bf4-4bb3-80c2-7eb27fe7c63f",
+  "eventType": "TRADE_EXECUTION",
+  "produceTime": 1792634400123,
+  "source": "counter_system",
+  "clientId": "000123",
+  "accountId": "000456",
+  "orderId": "000789",
+  "businessId": "000012",
+  "traceId": "trace-demo-001",
+  "secCode": "000001",
+  "secName": "平安银行",
+  "side": "BUY",
+  "orderType": "LIMIT",
+  "execQuantity": 12345678901234567890123456.123456789012,
+  "execPrice": 0.123456789012,
+  "execAmount": -12345678901234567890123456789012345678,
+  "execTime": "2026-10-22 09:30:00.123",
+  "orderStatus": "FILLED",
+  "market": "SZ",
+  "tradeType": "NORMAL"
+}

@@ -1,0 +1,335 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": [
+    "partner-hub",
+    "mvp"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "本地联调 · Mock 平台观测",
+  "uid": "hub-local-qa",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "采集目标：两个 hub 与三个 Mock",
+      "description": "1=抓取成功。分别抓取 hub-1/hub-2，避免代理掩盖单实例故障。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=~\"hub|mock-.*\"}",
+          "legendFormat": "{{job}} {{instance}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "后台采样健康与陈旧时间",
+      "description": "健康=0或最后成功时间缺失/过旧时，不应把保留的旧值当实时状态。失败不伪造零积压。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hub_observation_up",
+          "legendFormat": "hub {{instance}} {{kind}} healthy"
+        },
+        {
+          "refId": "B",
+          "expr": "time() - hub_observation_last_success_timestamp_seconds",
+          "legendFormat": "hub {{instance}} {{kind}} age(s)"
+        },
+        {
+          "refId": "C",
+          "expr": "mock_receipt_sample_success",
+          "legendFormat": "{{job}} receipts healthy"
+        },
+        {
+          "refId": "D",
+          "expr": "mock_platform2_lag_sample_success",
+          "legendFormat": "B lag healthy"
+        },
+        {
+          "refId": "E",
+          "expr": "time() - mock_platform2_lag_last_success_timestamp_seconds",
+          "legendFormat": "B lag age(s)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "外部平台实际实收记录",
+      "description": "独立MySQL实收行数gauge，不是中台SUCCESS或Store调用数。B同topic/partition/offset重放只计一行；数据库显式重置可下降。采样健康必须有效。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 48
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mock_received_rows{job=\"mock-platform1\"}",
+          "legendFormat": "A durable receipts"
+        },
+        {
+          "refId": "B",
+          "expr": "mock_received_rows{job=\"mock-platform2\"}",
+          "legendFormat": "B durable receipts"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "B 外部消费积压与暂停",
+      "description": "Kafka末端offset与消费组已提交offset之差。暂停时hub仍可Broker确认成功，实收暂不增长；恢复后lag消退。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 48
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mock_platform2_consumer_lag_records",
+          "legendFormat": "B group lag"
+        },
+        {
+          "refId": "B",
+          "expr": "mock_platform2_consumer_paused",
+          "legendFormat": "paused(1)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "进程内存与 goroutine",
+      "description": "进程指标；不代表中间件容器/主机资源，负载报告另记录docker stats。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 56
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_resident_memory_bytes{job=~\"hub|mock-.*\"}",
+          "legendFormat": "{{job}} {{instance}} RSS"
+        },
+        {
+          "refId": "B",
+          "expr": "go_goroutines{job=~\"hub|mock-.*\"}",
+          "legendFormat": "{{job}} {{instance}} goroutines"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "进程 CPU",
+      "description": "每秒CPU时间，1表示约一个CPU核；不用于推断未经实测的吞吐收益。",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 56
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "hub-prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(process_cpu_seconds_total{job=~\"hub|mock-.*\"}[1m])",
+          "legendFormat": "{{job}} {{instance}} CPU cores"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 6
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "id": null
+}

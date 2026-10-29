@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 2s
+  evaluation_interval: 15s
+  external_labels:
+    env: local
+    stack: partner-hub
+
+scrape_configs:
+  # Scrape the actual Compose services separately; Nginx would hide peer failure.
+  - job_name: hub
+    sample_limit: 5000
+    static_configs:
+      - targets: ["hub-1:8080"]
+        labels:
+          instance: hub-1
+      - targets: ["hub-2:8080"]
+        labels:
+          instance: hub-2
+
+  - job_name: mock-platform1
+    sample_limit: 1000
+    static_configs:
+      - targets: ["mock-platform1:18081"]
+
+  - job_name: mock-platform2
+    sample_limit: 1000
+    static_configs:
+      - targets: ["mock-platform2:18082"]
+
+  - job_name: mock-upstream
+    sample_limit: 1000
+    static_configs:
+      - targets: ["mock-upstream:18083"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
