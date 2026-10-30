@@ -1,0 +1,9 @@
+{
+  "action": "push",
+  "targetBranch": "main",
+  "remote": "origin",
+  "schemaVersion": 1,
+  "changeIdentity": "run:b2336568-3ee2-4d70-9e62-26788bd57b9b",
+  "authorizationId": "48054e86-3610-4612-aa74-466f933462af",
+  "authorizedRemoteUrl": "https://github.com/BestKurumi/PartnerHub.git"
+}

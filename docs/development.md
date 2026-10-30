@@ -53,7 +53,7 @@ docker compose --env-file .env up -d --no-build --wait --wait-timeout 300
 
 备用路径按Docker服务端amd64／arm64选择Linux架构，可显式设置`HUB_DOCKER_ARCH`。本地运行层仅打包二进制与页面、迁移，不包含Go工具链。该路径不等于整套离线安装；普通使用者优先选择Docker默认runtime目标。
 
-提交中保留产品源码、测试、迁移、可复现配置及已归档的OpenSpec变更文档与配图；忽略`.env*`（示例除外）、`.local/`、编译产物、浏览器依赖、AI工作流状态和原始执行报告。归档内的`.comet/`与`.comet.yaml`继续忽略，已有本地资料不会被删除。归档状态和历史引用说明见[OpenSpec索引](openspec/README.md)。
+提交中保留产品源码、测试、迁移、可复现配置及已归档的OpenSpec变更文档与配图；忽略`.env*`（示例除外）、`.local/`、编译产物、浏览器依赖、原始执行报告及工作流缓存。本次MVP仅额外保留`.comet.yaml`与`.comet/delivery.json`两份无凭据的归档/交付凭证，其他归档运行记录仍忽略，已有本地资料不会被删除。归档状态和历史引用说明见[OpenSpec索引](openspec/README.md)。
 
 ## 本地模式的高级配置
 

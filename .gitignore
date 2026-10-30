@@ -42,15 +42,22 @@ Thumbs.db
 !/docs/observability.md
 !/docs/architecture.md
 !/docs/development.md
+!/docs/acceptance.md
 !/docs/openspec/
 /docs/openspec/*
 !/docs/openspec/README.md
 !/docs/openspec/changes/
+!/docs/openspec/specs/
 /docs/openspec/changes/*
 !/docs/openspec/changes/archive/
 # Keep the archived proposal/design/tasks/specs and diagrams; runtime state stays local.
 /docs/openspec/changes/archive/**/.comet/
 /docs/openspec/changes/archive/**/.comet.yaml
+# This release keeps only the two receipts required to verify its archive commit.
+!/docs/openspec/changes/archive/2026-10-30-partner-hub-mvp/.comet.yaml
+!/docs/openspec/changes/archive/2026-10-30-partner-hub-mvp/.comet/
+/docs/openspec/changes/archive/2026-10-30-partner-hub-mvp/.comet/*
+!/docs/openspec/changes/archive/2026-10-30-partner-hub-mvp/.comet/delivery.json
 
 # One-off runners tied to the author's private startup environment
 /scripts/*

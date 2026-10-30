@@ -14,16 +14,16 @@ test('failed DB query is not reported as an absent delivery',async()=>{const p=p
 
 test('only attention tasks and unresolved routes offer manual actions',async()=>{
  const p=page(()=>response(200,{items:[{msgId:'m1',routeStatus:'NEEDS_ATTENTION',platformResults:[]},{msgId:'m2',routeStatus:'ROUTED',platformResults:[{deliveryId:'d1',currentState:'NEEDS_ATTENTION',platformId:'PLATFORM_A'},{deliveryId:'d2',currentState:'SUCCEEDED'}]},{msgId:'m3',routeStatus:'NO_ROUTE',platformResults:[]}]}));
- p.get('form').onsubmit({preventDefault(){}});await p.drain();assert.equal(p.get('actions').children.length,2);assert.ok(p.get('actions').children[0].textContent.includes('m1'));assert.ok(p.get('actions').children[1].textContent.includes('d1'));assert.equal(p.calls.length,1);
+ p.get('form').onsubmit({preventDefault(){}});await p.drain();assert.equal(p.get('actions').children.length,2);assert.ok(p.get('actions').children[0].title.includes('m1'));assert.ok(p.get('actions').children[1].title.includes('d1'));assert.equal(p.calls.length,1);
 });
 test('manual action saves intent with original target and explains pending',async()=>{
- const p=page((url,options)=>options.method==='POST'?response(200,{operationId:JSON.parse(options.body).operationId,state:'PENDING',retryCycle:2}):response(200,{items:[{deliveryId:'fixed-delivery',platformUid:'fixed-uid',currentState:'NEEDS_ATTENTION',platformId:'PLATFORM_A'}]}));
+ const p=page((url,options)=>options.method==='POST'?response(200,{operationId:JSON.parse(options.body).operationId,kind:'DELIVERY',targetId:'fixed-delivery',state:'PENDING',retryCycle:2}):response(200,{items:[{deliveryId:'fixed-delivery',platformUid:'fixed-uid',currentState:'NEEDS_ATTENTION',platformId:'PLATFORM_A'}]}));
  p.get('kind').value='deliveries';p.get('token').value='secret';p.get('form').onsubmit({preventDefault(){}});await p.drain();p.get('operator').value='操作员';p.get('reason').value='修复配置';await p.get('actions').children[0].onclick();
  const call=p.calls[1],body=JSON.parse(call.body);assert.ok(call.url.endsWith('/hub/demo/deliveries/fixed-delivery/retry'));assert.deepEqual(Object.keys(body).sort(),['operationId','operator','reason']);assert.match(body.operationId,/^[a-f0-9-]{36}$/);assert.equal(call.headers['X-Demo-Token'],'secret');assert.ok(p.get('manual-status').textContent.includes('不代表投递成功'));assert.ok(p.get('operation').textContent.includes(body.operationId));
 });
 test('uncertain command reuses exact operation and blocks duplicate clicks',async()=>{
  let release;const pending=new Promise(resolve=>{release=resolve});let posts=0;
- const p=page(async(url,options)=>{if(options.method==='POST'){posts++;if(posts===1){await pending;return response(503,{code:'RETRY_UNCONFIRMED'})}return response(200,{state:'PENDING',retryCycle:2})}return response(200,{items:[{deliveryId:'d1',currentState:'NEEDS_ATTENTION'}]})});
+ const p=page(async(url,options)=>{if(options.method==='POST'){posts++;if(posts===1){await pending;return response(503,{code:'RETRY_UNCONFIRMED'})}return response(200,{operationId:JSON.parse(options.body).operationId,kind:'DELIVERY',targetId:'d1',state:'PENDING',retryCycle:2})}return response(200,{items:[{deliveryId:'d1',currentState:'NEEDS_ATTENTION'}]})});
  p.get('form').onsubmit({preventDefault(){}});await p.drain();p.get('operator').value='op';p.get('reason').value='repair';const b=p.get('actions').children[0];const first=b.onclick();await b.onclick();assert.equal(posts,1);release();await first;
  const body=p.calls[1].body;p.get('reason').value='changed';await b.onclick();assert.equal(posts,1);await p.get('retry-operation').onclick();assert.equal(posts,2);assert.equal(p.calls[2].body,body);assert.ok(p.get('manual-status').textContent.includes('不代表投递成功'));
 });
