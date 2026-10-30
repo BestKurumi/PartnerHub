@@ -37,11 +37,20 @@ Thumbs.db
 /.superpowers/
 /AGENTS.md
 
-# Local design archives, execution evidence and screenshots remain on disk
+# Public documentation and archived OpenSpec changes
 /docs/*
 !/docs/observability.md
 !/docs/architecture.md
 !/docs/development.md
+!/docs/openspec/
+/docs/openspec/*
+!/docs/openspec/README.md
+!/docs/openspec/changes/
+/docs/openspec/changes/*
+!/docs/openspec/changes/archive/
+# Keep the archived proposal/design/tasks/specs and diagrams; runtime state stays local.
+/docs/openspec/changes/archive/**/.comet/
+/docs/openspec/changes/archive/**/.comet.yaml
 
 # One-off runners tied to the author's private startup environment
 /scripts/*

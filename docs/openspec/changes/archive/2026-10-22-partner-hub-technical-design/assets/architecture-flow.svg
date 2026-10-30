@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1610" viewBox="0 0 2400 1610" role="img" aria-labelledby="title desc">
+<title id="title">外部合作中台 · 直接首发与MySQL异常恢复</title><desc id="desc">HTTP直接路由及分平台首发，不做成交业务防重；正常结果Redis暂存后异步写MySQL，失败事务提交后才确认接管，MySQL驱动重试及状态查询。绑定事件和平台2输出Kafka保留，成交入口Kafka移除。</desc>
+<defs><marker id="a-ink" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#17314d" /></marker><marker id="a-muted" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#556d84" /></marker><marker id="a-line" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#cbd8e5" /></marker><marker id="a-blue" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#2563a6" /></marker><marker id="a-teal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#087f83" /></marker><marker id="a-orange" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#ad6218" /></marker><marker id="a-purple" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#7150a0" /></marker></defs>
+<style>text{font-family:"PingFang SC","Heiti SC","Microsoft YaHei",sans-serif}path{stroke-linejoin:round;stroke-linecap:round}</style>
+<rect width="2400" height="1610" fill="#f7f9fc" />
+<text x="55" y="65" font-size="40" fill="#17314d" font-weight="600" text-anchor="start">外部合作中台 · 直接首发与异常恢复</text>
+<text x="55" y="110" font-size="26" fill="#556d84" font-weight="400" text-anchor="start">设计 v2.0｜上游保证不重复；正常异步归档；失败接管先落 MySQL；上游与运维状态查询只读 MySQL</text>
+<rect x="310" y="155" width="1685" height="1140" rx="22" fill="#edf4fc" stroke="#c3d5e9" stroke-width="1.5" />
+<text x="340" y="200" font-size="29" fill="#2563a6" font-weight="600" text-anchor="start">中台 · Go 模块化单体 / 无状态多实例</text>
+<rect x="980" y="245" width="500" height="125" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="981" y="263" width="5" height="89" rx="2" fill="#ad6218" stroke="#ad6218" stroke-width="1.5" />
+<text x="1003" y="285" font-size="28" fill="#ad6218" font-weight="600" text-anchor="start">02 客户关系</text>
+<text x="1003" y="325" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">MySQL 权威关系 / Redis 完整快照</text>
+<rect x="1560" y="245" width="390" height="125" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1561" y="263" width="5" height="89" rx="2" fill="#087f83" stroke="#087f83" stroke-width="1.5" />
+<text x="1583" y="285" font-size="28" fill="#087f83" font-weight="600" text-anchor="start">Kafka 绑定输入</text>
+<text x="1583" y="325" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">customer.binding.events</text>
+<rect x="2045" y="245" width="300" height="125" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="2046" y="263" width="5" height="89" rx="2" fill="#7150a0" stroke="#7150a0" stroke-width="1.5" />
+<text x="2068" y="285" font-size="28" fill="#7150a0" font-weight="600" text-anchor="start">Mock 绑定 / 解绑</text>
+<text x="2068" y="325" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">模拟生产方（暂定）</text>
+<path d="M2045 307 H1950" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" stroke-dasharray="9 7" />
+<path d="M1560 307 H1480" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" stroke-dasharray="9 7" />
+<path d="M1130 370 V455" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" stroke-dasharray="9 7" />
+<text x="1150" y="420" font-size="22" fill="#ad6218" font-weight="500" text-anchor="start">02 → 03：当前有效绑定</text>
+<rect x="55" y="455" width="215" height="205" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="56" y="473" width="5" height="169" rx="2" fill="#7150a0" stroke="#7150a0" stroke-width="1.5" />
+<text x="78" y="495" font-size="28" fill="#7150a0" font-weight="600" text-anchor="start">上游 HTTP</text>
+<text x="78" y="535" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">统一成交协议</text>
+<text x="78" y="571" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">上游保证不重复</text>
+<text x="78" y="607" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">不感知外部差异</text>
+<rect x="340" y="455" width="585" height="205" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="341" y="473" width="5" height="169" rx="2" fill="#2563a6" stroke="#2563a6" stroke-width="1.5" />
+<text x="363" y="495" font-size="28" fill="#2563a6" font-weight="600" text-anchor="start">01 成交接入</text>
+<text x="363" y="535" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">限流 / 并发 / 校验</text>
+<text x="363" y="571" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">等待首次尝试结果</text>
+<text x="363" y="607" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">沿用 msgId，返回首轮结果 200 / 202</text>
+<rect x="980" y="455" width="300" height="205" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="981" y="473" width="5" height="169" rx="2" fill="#2563a6" stroke="#2563a6" stroke-width="1.5" />
+<text x="1003" y="495" font-size="28" fill="#2563a6" font-weight="600" text-anchor="start">03 客户路由</text>
+<text x="1003" y="535" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">请求内解析绑定</text>
+<text x="1003" y="571" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">固定平台 UID / 目标</text>
+<text x="1003" y="607" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">不经全量任务扫库</text>
+<rect x="1335" y="455" width="285" height="205" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1336" y="473" width="5" height="169" rx="2" fill="#2563a6" stroke="#2563a6" stroke-width="1.5" />
+<text x="1358" y="495" font-size="28" fill="#2563a6" font-weight="600" text-anchor="start">04 请求内首发</text>
+<text x="1358" y="535" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">平台独立并发 / 超时</text>
+<text x="1358" y="571" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">执行首轮并聚合结果</text>
+<text x="1358" y="607" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">本次只重试失败平台</text>
+<rect x="1690" y="405" width="270" height="145" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1691" y="423" width="5" height="109" rx="2" fill="#ad6218" stroke="#ad6218" stroke-width="1.5" />
+<text x="1713" y="445" font-size="26" fill="#ad6218" font-weight="600" text-anchor="start">05a HTTP Adapter</text>
+<text x="1713" y="485" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">字段 / 枚举 / 时间映射</text>
+<text x="1713" y="521" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">HTTP 响应确认</text>
+<rect x="1690" y="595" width="270" height="145" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1691" y="613" width="5" height="109" rx="2" fill="#ad6218" stroke="#ad6218" stroke-width="1.5" />
+<text x="1713" y="635" font-size="24" fill="#ad6218" font-weight="600" text-anchor="start">05b Kafka Adapter</text>
+<text x="1713" y="675" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">白名单 / 协议适配</text>
+<text x="1713" y="711" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">Broker 确认</text>
+<rect x="2045" y="405" width="300" height="145" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="2046" y="423" width="5" height="109" rx="2" fill="#7150a0" stroke="#7150a0" stroke-width="1.5" />
+<text x="2068" y="445" font-size="28" fill="#7150a0" font-weight="600" text-anchor="start">平台 1 HTTP Mock</text>
+<text x="2068" y="485" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">接收记录 → UID 消息中心</text>
+<text x="2068" y="521" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">本平台查询 API</text>
+<rect x="2045" y="595" width="300" height="145" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="2046" y="613" width="5" height="109" rx="2" fill="#7150a0" stroke="#7150a0" stroke-width="1.5" />
+<text x="2068" y="635" font-size="28" fill="#7150a0" font-weight="600" text-anchor="start">平台 2 Kafka Mock</text>
+<text x="2068" y="675" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">消费记录 → UID 消息中心</text>
+<text x="2068" y="711" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">Broker 成功 ≠ 已消费</text>
+<path d="M270 557 H340" fill="none" stroke="#2563a6" stroke-width="3" marker-end="url(#a-blue)" />
+<path d="M925 557 H980" fill="none" stroke="#2563a6" stroke-width="3" marker-end="url(#a-blue)" />
+<path d="M1280 557 H1335" fill="none" stroke="#2563a6" stroke-width="3" marker-end="url(#a-blue)" />
+<path d="M1620 557 H1655 V478 H1690" fill="none" stroke="#2563a6" stroke-width="3" marker-end="url(#a-blue)" />
+<path d="M1655 557 V667 H1690" fill="none" stroke="#2563a6" stroke-width="3" marker-end="url(#a-blue)" />
+<path d="M1960 478 H2045" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" />
+<path d="M1960 667 H2045" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" />
+<rect x="640" y="805" width="350" height="185" rx="16" fill="#f2fbfa" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="641" y="823" width="5" height="149" rx="2" fill="#087f83" stroke="#087f83" stroke-width="1.5" />
+<text x="663" y="845" font-size="28" fill="#087f83" font-weight="600" text-anchor="start">Redis 首轮结果暂存</text>
+<text x="663" y="885" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">按 msgId 完整暂存</text>
+<text x="663" y="921" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">未归档不按普通 TTL 清理</text>
+<text x="663" y="957" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">仅归档索引，不调度重试</text>
+<rect x="1050" y="805" width="450" height="185" rx="16" fill="#f2fbfa" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1051" y="823" width="5" height="149" rx="2" fill="#087f83" stroke="#087f83" stroke-width="1.5" />
+<text x="1073" y="845" font-size="28" fill="#087f83" font-weight="600" text-anchor="start">正常成功 / NO_ROUTE</text>
+<text x="1073" y="885" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">Redis 保存完整结果后返回 200</text>
+<text x="1073" y="921" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">归档器批量写 MySQL</text>
+<text x="1073" y="957" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">不等待写库；查询异步可见</text>
+<rect x="1580" y="805" width="380" height="185" rx="16" fill="#fffaf2" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1581" y="823" width="5" height="149" rx="2" fill="#ad6218" stroke="#ad6218" stroke-width="1.5" />
+<text x="1603" y="845" font-size="25" fill="#ad6218" font-weight="600" text-anchor="start">失败 / UNKNOWN / 路由异常</text>
+<text x="1603" y="885" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">完整快照 + 失败任务同事务</text>
+<text x="1603" y="921" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">MySQL 提交确认后才 ACCEPTED</text>
+<text x="1603" y="957" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">临时失败 202；永久失败转人工</text>
+<path d="M1480 660 V770 H1275 V805" fill="none" stroke="#087f83" stroke-width="3" marker-end="url(#a-teal)" />
+<path d="M1480 770 H1770 V805" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" />
+<path d="M990 897 H1050" fill="none" stroke="#087f83" stroke-width="3" marker-end="url(#a-teal)" stroke-dasharray="9 7" />
+<rect x="1050" y="1070" width="450" height="165" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1051" y="1088" width="5" height="129" rx="2" fill="#087f83" stroke="#087f83" stroke-width="1.5" />
+<text x="1073" y="1110" font-size="28" fill="#087f83" font-weight="600" text-anchor="start">MySQL · 状态权威</text>
+<text x="1073" y="1150" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">接收记录 / 消息 / 尝试</text>
+<text x="1073" y="1186" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">异常任务 / 人工操作 / 查询</text>
+<rect x="1580" y="1070" width="380" height="165" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<rect x="1581" y="1088" width="5" height="129" rx="2" fill="#ad6218" stroke="#ad6218" stroke-width="1.5" />
+<text x="1603" y="1110" font-size="28" fill="#ad6218" font-weight="600" text-anchor="start">04 MySQL 恢复调度</text>
+<text x="1603" y="1150" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">只扫异常 / 待重试任务</text>
+<text x="1603" y="1186" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">有限重试 / 租约恢复 / 人工</text>
+<path d="M1275 990 V1070" fill="none" stroke="#087f83" stroke-width="3" marker-end="url(#a-teal)" stroke-dasharray="9 7" />
+<text x="1300" y="1040" font-size="21" fill="#087f83" font-weight="500" text-anchor="start">异步归档</text>
+<path d="M1770 990 V1030 H1500 V1150" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" />
+<text x="1590" y="1024" font-size="21" fill="#ad6218" font-weight="500" text-anchor="start">失败事务移交</text>
+<path d="M1500 1190 H1580" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" />
+<path d="M1960 1150 H1980 V380 H1655 V478 H1690" fill="none" stroke="#ad6218" stroke-width="3" marker-end="url(#a-orange)" stroke-dasharray="9 7" />
+<text x="1610" y="1268" font-size="21" fill="#ad6218" font-weight="500" text-anchor="start">恢复也调用 05；成功记录永不领取</text>
+<rect x="55" y="1350" width="2290" height="165" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="80" y="1398" font-size="28" fill="#2563a6" font-weight="600" text-anchor="start">06 查询与操作 · MySQL 唯一查询来源</text>
+<text x="80" y="1442" font-size="25" fill="#556d84" font-weight="400" text-anchor="start">按 msgId 查状态；中台运维查失败 / 尝试 / 人工重试。正常成功记录未归档时，暂无记录 ≠ 未投递。</text>
+<text x="80" y="1483" font-size="24" fill="#556d84" font-weight="400" text-anchor="start">客户通知展示属于右侧外部 Mock；Redis 只缓存关系与暂存归档，不作为重试权威。</text>
+<path d="M1275 1350 V1235" fill="none" stroke="#087f83" stroke-width="3" marker-end="url(#a-teal)" stroke-dasharray="9 7" />
+<text x="55" y="1570" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">蓝：首发主线　绿虚线：异步记录 / 查询　橙：绑定或异常恢复｜已移除成交入口 Kafka，仍保留绑定和平台 2 输出 Kafka。</text>
+</svg>

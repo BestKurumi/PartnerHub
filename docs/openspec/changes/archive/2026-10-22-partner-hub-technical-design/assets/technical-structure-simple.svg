@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1240" viewBox="0 0 1600 1240" role="img" aria-labelledby="title desc">
+<title id="title">直接投递版 · 简版技术结构</title><desc id="desc">四层结构，首发直接执行、正常异步归档、MySQL异常恢复和状态查询；外部平台各自消息中心独立。</desc>
+<defs><marker id="a-ink" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#17314d" /></marker><marker id="a-muted" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#556d84" /></marker><marker id="a-line" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#cbd8e5" /></marker><marker id="a-blue" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#2563a6" /></marker><marker id="a-teal" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#087f83" /></marker><marker id="a-orange" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#ad6218" /></marker><marker id="a-purple" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L9,5 L0,10 Z" fill="#7150a0" /></marker></defs>
+<style>text{font-family:"PingFang SC","Heiti SC","Microsoft YaHei",sans-serif}path{stroke-linejoin:round;stroke-linecap:round}</style>
+<rect width="1600" height="1240" fill="#f7f9fc" />
+<text x="45" y="65" font-size="39" fill="#17314d" font-weight="600" text-anchor="start">外部合作中台 · 简版技术结构</text>
+<text x="45" y="110" font-size="25" fill="#556d84" font-weight="400" text-anchor="start">设计 v2.0 · HTTP 直接首发 · 上游保证不重复 · 正常异步写库 · MySQL 异常恢复与状态查询</text>
+<rect x="40" y="145" width="1130" height="690" rx="20" fill="#edf4fc" stroke="#c3d5e9" stroke-width="1.5" />
+<text x="65" y="187" font-size="26" fill="#2563a6" font-weight="600" text-anchor="start">合作中台应用 · Go 模块化单体 / 无状态多实例</text>
+<rect x="65" y="215" width="1080" height="130" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="85" y="258" font-size="29" fill="#2563a6" font-weight="600" text-anchor="start">L1 接口层</text>
+<text x="85" y="303" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">交互与输入输出</text>
+<text x="365" y="263" font-size="24" fill="#17314d" font-weight="400" text-anchor="start">Gin HTTP 成交接口 · Kafka 绑定入口 · 页面 / 查询 API</text>
+<text x="365" y="307" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">HTTP 等首次结果返回；无成交 Kafka Consumer</text>
+<rect x="65" y="365" width="1080" height="130" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="85" y="408" font-size="29" fill="#2563a6" font-weight="600" text-anchor="start">L2 应用层</text>
+<text x="85" y="453" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">首发 / 接管 / 归档</text>
+<text x="365" y="413" font-size="24" fill="#17314d" font-weight="400" text-anchor="start">成交接入（01）· 关系（02）· 路由（03）· 首次投递（04）</text>
+<text x="365" y="457" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">正常异步归档；失败 MySQL 接管重试；查询 / 人工操作（06）</text>
+<rect x="65" y="515" width="1080" height="130" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="85" y="558" font-size="29" fill="#7150a0" font-weight="600" text-anchor="start">L3 领域层</text>
+<text x="85" y="603" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">业务规则与状态</text>
+<text x="365" y="563" font-size="24" fill="#17314d" font-weight="400" text-anchor="start">消息契约 · 绑定裁决 · 路由快照 · 状态迁移 / 重试资格</text>
+<text x="365" y="607" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">本次固定 UID / 只重试失败平台；查询暂空不等于未投递</text>
+<rect x="65" y="665" width="1080" height="130" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="85" y="708" font-size="29" fill="#087f83" font-weight="600" text-anchor="start">L4 基础设施层</text>
+<text x="85" y="753" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">存储与通信实现</text>
+<text x="365" y="713" font-size="24" fill="#17314d" font-weight="400" text-anchor="start">Redis 关系缓存 / 暂存 · MySQL 记录 / 异常任务 · Adapter（05）</text>
+<text x="365" y="757" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">database/sql · go-redis · net/http · franz-go</text>
+<rect x="1210" y="145" width="350" height="690" rx="16" fill="#f2f7fa" stroke="#cfdee5" stroke-width="1.5" />
+<text x="1235" y="190" font-size="29" fill="#087f83" font-weight="600" text-anchor="start">跨层运行保障</text>
+<text x="1235" y="250" font-size="25" fill="#17314d" font-weight="600" text-anchor="start">入口与平台保护</text>
+<text x="1235" y="290" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">限流 / 并发 / 超时</text>
+<text x="1235" y="324" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">平台独立执行额度</text>
+<text x="1235" y="390" font-size="25" fill="#17314d" font-weight="600" text-anchor="start">日志与指标</text>
+<text x="1235" y="430" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">slog / traceId</text>
+<text x="1235" y="464" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">Prometheus / Grafana</text>
+<text x="1235" y="530" font-size="25" fill="#17314d" font-weight="600" text-anchor="start">容量与归档保护</text>
+<text x="1235" y="570" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">有界批量写入</text>
+<text x="1235" y="604" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">Redis / DB 预算</text>
+<text x="1235" y="670" font-size="25" fill="#17314d" font-weight="600" text-anchor="start">本地多实例</text>
+<text x="1235" y="710" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">Nginx → hub-1 / hub-2</text>
+<text x="1235" y="744" font-size="23" fill="#556d84" font-weight="400" text-anchor="start">Docker Compose</text>
+<text x="45" y="880" font-size="26" fill="#087f83" font-weight="600" text-anchor="start">基础中间件 · 正常写入异步，失败恢复与查询以 MySQL 为准</text>
+<rect x="40" y="905" width="485" height="85" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="60" y="940" font-size="25" fill="#087f83" font-weight="600" text-anchor="start">MySQL</text>
+<text x="60" y="972" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">接收记录 / 异常任务 / 状态查询</text>
+<rect x="550" y="905" width="485" height="85" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="570" y="940" font-size="25" fill="#087f83" font-weight="600" text-anchor="start">Redis</text>
+<text x="570" y="972" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">绑定缓存 / 归档暂存</text>
+<rect x="1060" y="905" width="500" height="85" rx="16" fill="white" stroke="#cbd8e5" stroke-width="1.5" />
+<text x="1080" y="940" font-size="25" fill="#087f83" font-weight="600" text-anchor="start">Kafka</text>
+<text x="1080" y="972" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">仅绑定输入 / 平台 2 输出</text>
+<text x="45" y="1033" font-size="26" fill="#7150a0" font-weight="600" text-anchor="start">外部平台 Mock · 各自拥有客户消息中心</text>
+<rect x="40" y="1055" width="745" height="90" rx="16" fill="#faf7fd" stroke="#c7b6dc" stroke-width="1.5" />
+<text x="65" y="1090" font-size="24" fill="#7150a0" font-weight="500" text-anchor="start">平台 1：HTTP 接收 → 接收记录 → UID 消息中心</text>
+<text x="65" y="1124" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">本平台查询 API + 简单页面</text>
+<rect x="815" y="1055" width="745" height="90" rx="16" fill="#faf7fd" stroke="#c7b6dc" stroke-width="1.5" />
+<text x="840" y="1090" font-size="24" fill="#7150a0" font-weight="500" text-anchor="start">平台 2：Kafka 消费 → 接收记录 → UID 消息中心</text>
+<text x="840" y="1124" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">本平台查询 API + 简单页面</text>
+<text x="45" y="1200" font-size="22" fill="#556d84" font-weight="400" text-anchor="start">01–06 为需求模块，L1–L4 为技术层。Redis 不承担平台重试调度；已确认技术方案，参数待实测。</text>
+</svg>

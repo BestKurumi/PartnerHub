@@ -149,4 +149,4 @@ go vet ./...
 python3 -m unittest discover -s scripts -p demo_test.py
 ```
 
-浏览器与集成测试环境见[开发说明](docs/development.md)；架构和语义见[架构说明](docs/architecture.md)，指标口径见[可观测说明](docs/observability.md)。
+浏览器与集成测试环境见[开发说明](docs/development.md)；架构和语义见[架构说明](docs/architecture.md)，指标口径见[可观测说明](docs/observability.md)。历史提案、完整技术设计和架构图见[OpenSpec 变更归档](docs/openspec/README.md)。
